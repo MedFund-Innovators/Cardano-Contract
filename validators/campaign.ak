@@ -1,6 +1,7 @@
 use aiken/collection/dict
 use aiken/collection/list
 use aiken/crypto.{VerificationKeyHash}
+use aiken/interval
 use cardano/script_context.{ScriptContext}
 use cardano/transaction.{Transaction}
 use types/campaign.{Campaign, CampaignAction, CampaignStatus, Verification}
@@ -21,7 +22,15 @@ validator campaign_validator {
         // Ensure we have a signed transaction by the campaign owner
         let signed = is_signed_by(tx, datum.owner)
         let valid_target = target > 0
-        let valid_deadline = deadline > tx.validity_range.lower_bound.limit
+        // Use the lower bound of the validity range as current time (POSIX time in milliseconds)
+        let current_time =
+          when tx.validity_range.lower_bound.bound_type is {
+            // For finite lower bounds, extract the limit
+            interval.Finite(limit) -> limit
+            // For negative infinity, use 0 as a fallback
+            _ -> 0
+          }
+        let valid_deadline = deadline > current_time
         let initialized =
           datum.raised_amount == 0 && datum.status == CampaignStatus.Active && datum.donors == []
         signed? && valid_target? && valid_deadline? && initialized?

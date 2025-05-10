@@ -21,8 +21,7 @@ fn find_donation_amount(
       when input.output.datum is {
         InlineDatum(inline_datum) ->
           when inline_datum is {
-            // Match against Campaign constructor
-            Campaign { id, donors, .. } ->
+            Campaign { id, donors, .. } as campaign ->
               // Check if this is the correct campaign
               if id == campaign_id {
                 // Find the donor in this campaign's donors list with amount >= bronze_tier
@@ -42,7 +41,6 @@ fn find_donation_amount(
               } else {
                 None
               }
-            // Not the right campaign
             _ -> None
           }
         // Not an InlineDatum

@@ -1,8 +1,9 @@
 use aiken/collection/list
 use aiken/crypto.{VerificationKeyHash}
+use aiken/interval.{contains}
 use cardano/script_context.{ScriptContext}
-use cardano/transaction.{Transaction}
-use types/campaign.{Campaign, CampaignStatus}
+use cardano/transaction.{InlineDatum, Transaction}
+use types/campaign.{Active, Campaign, CampaignStatus, Cancelled}
 use types/donation.{DonationAction, DonationDatum}
 
 /// Donation validator for MedFund
@@ -13,7 +14,7 @@ fn is_signed_by(tx: Transaction, vk_hash: VerificationKeyHash) -> Bool {
 
 /// Helper function to check if deadline has passed
 fn is_deadline_passed(tx: Transaction, deadline: Int) -> Bool {
-  tx.validity_range.upper_bound.limit >= deadline
+  contains(tx.validity_range, deadline)
 }
 
 /// Donation validator - Handles donations and refund requests
@@ -22,14 +23,14 @@ validator donation_validator {
     let tx = context.transaction
     when redeemer is {
       // Donate to a campaign
-      Donate { campaign_id, amount } ->
+      DonationAction.Donate { campaign_id, amount } ->
         // Find the campaign from inputs
         when
-          list.find_map(
+          list.filter_map(
             context.transaction.inputs,
             fn(input) {
               when input.output.datum is {
-                Some(inline_datum) ->
+                InlineDatum(inline_datum) ->
                   when inline_datum is {
                     Campaign { id, status, deadline, .. } ->
                       if id == campaign_id {
@@ -43,6 +44,7 @@ validator donation_validator {
               }
             },
           )
+            |> list.head
         is {
           Some((status, deadline)) -> {
             // Ensure campaign is active and deadline hasn't passed
@@ -57,14 +59,14 @@ validator donation_validator {
           None -> False
         }
       // Request refund (if campaign cancelled or deadline passed without meeting target)
-      RequestRefund { campaign_id } ->
+      DonationAction.RequestRefund { campaign_id } ->
         // Find the campaign from inputs
         when
-          list.find_map(
+          list.filter_map(
             context.transaction.inputs,
             fn(input) {
               when input.output.datum is {
-                Some(inline_datum) ->
+                InlineDatum(inline_datum) ->
                   when inline_datum is {
                     Campaign {
                       id,
@@ -85,6 +87,7 @@ validator donation_validator {
               }
             },
           )
+            |> list.head
         is {
           Some((status, deadline, target_amount, raised_amount)) -> {
             // Verify refund conditions: campaign is canceled or deadline passed but target not met

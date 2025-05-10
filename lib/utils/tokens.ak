@@ -1,8 +1,6 @@
 use aiken/crypto.{VerificationKeyHash}
 use aiken/primitive/bytearray
-use types/token.{
-  bronze_tier, gold_tier, mednft_prefix, platinum_tier, silver_tier,
-}
+use types/token.{gold_tier, mednft_prefix, platinum_tier, silver_tier}
 
 /// Token utility functions for MedFund
 /// Generate unique NFT name based on campaign ID and donor

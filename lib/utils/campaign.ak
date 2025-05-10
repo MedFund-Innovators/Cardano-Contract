@@ -1,5 +1,5 @@
 use aiken/collection/dict.{Dict}
-use aiken/crypto.{Blake2b_224, Hash, VerificationKeyHash}
+use aiken/crypto.{VerificationKeyHash}
 
 /// Campaign related types for the MedFund platform
 /// Campaign status states

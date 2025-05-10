@@ -1,5 +1,4 @@
-use aiken/crypto.{Blake2b_224, Hash, VerificationKeyHash}
-use types/campaign.{Campaign}
+use aiken/crypto.{VerificationKeyHash}
 
 /// Donation related types for the MedFund platform
 /// Donation data structure

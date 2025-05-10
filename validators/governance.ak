@@ -17,24 +17,25 @@ fn find_campaign(
   inputs: List<Input>,
   campaign_id: ByteArray,
 ) -> Option<Campaign> {
-  list.find_map(
+  list.filter_map(
     inputs,
     fn(input: Input) {
       when input.output.datum is {
         InlineDatum(inline_datum) ->
-          when Campaign.from_data(inline_datum) is {
-            Some(campaign) ->
-              if campaign.id == campaign_id {
+          when inline_datum is {
+            Campaign { id, .. } as campaign ->
+              if id == campaign_id {
                 Some(campaign)
               } else {
                 None
               }
-            None -> None
+            _ -> None
           }
         _ -> None
       }
     },
   )
+    |> list.head
 }
 
 /// Governance validator - Handles voting and protocol updates

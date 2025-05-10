@@ -1,0 +1,301 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Cursor Rules for Aiken Smart Contract Development
+
+## Project Structure
+- Organize code into `validators/` for on-chain validators and `lib/` for reusable modules
+- Follow naming conventions: `snake_case` for files and functions, `CamelCase` for types
+- Place tests in separate modules with descriptive names (typically with `_test` suffix)
+- Structure imports at the top of files in alphabetical order
+
+## Syntax Guidelines
+- Begin validator definitions with the `validator` keyword
+- Define regular helper functions with the `fn` keyword and proper return types
+- Use curly braces `{}` for code blocks and expression bodies
+- End expressions with either a new line or semicolon
+- Keep indentation consistent (2 spaces recommended)
+- Use `pub` prefix for public functions and types
+
+## Common Validator Patterns
+```aiken
+// Basic validator structure
+validator example_validator {
+  spend(datum: Datum, redeemer: Redeemer, context: ScriptContext) -> Bool {
+    // Validation logic here
+    True
+  }
+  
+  mint(redeemer: Redeemer, context: ScriptContext) -> Bool {
+    // Minting logic here
+    True
+  }
+}
+```
+
+## Error Handling & Debugging
+- Use the `expect` keyword for conditional validation with meaningful error messages
+- Utilize `todo @"message"` for placeholders during development
+- Create clear, specific error conditions with Boolean expressions
+- Group validation conditions using `and {}` or `or {}` blocks
+- Use `trace` for debugging complex logic (removes in production)
+
+## Testing Techniques
+- Write tests as functions with the `test` prefix
+- Use property-based testing for thorough validation
+- Structure tests with setup, execution, and assertion phases
+- Create helper functions for common test operations
+- Test edge cases and failure conditions explicitly
+
+## Development Workflow
+- Build with `aiken build`
+- Run tests with `aiken check`
+- Generate documentation with `aiken docs`
+- Deploy using the `plutus.json` blueprint output
+- Debug using CBOR diagnostics for on-chain data inspection
+
+## Common Imports
+```aiken
+use aiken/hash.{Blake2b_224, Hash}
+use aiken/list
+use aiken/dict
+use aiken/transaction.{ScriptContext, Transaction}
+use aiken/transaction/credential.{VerificationKey, VerificationKeyHash}
+```
+
+## Type Definition Best Practices
+```aiken
+// Define clear, descriptive types
+pub type Datum {
+  owner: VerificationKeyHash,
+  metadata: ByteArray,
+  amount: Int,
+}
+
+// Use enums for action types
+pub type Action {
+  Create
+  Update
+  Delete { reason: ByteArray }
+}
+```
+
+## Performance Considerations
+- Keep validator logic concise to minimize execution costs
+- Avoid unnecessary computation in validation paths
+- Use pattern matching rather than nested conditionals 
+- Prioritize on-chain safety over complex functionality
+
+## References
+- Standard library: [aiken-lang/stdlib](mdc:https:/github.com/aiken-lang/stdlib)
+- Examples: [Awesome Aiken](mdc:https:/github.com/aiken-lang/awesome-aiken)
+- Documentation: [aiken-lang.org](mdc:https:/aiken-lang.org)
+
+## Syntax and Data Types
+
+### Primitive Types
+- `Int` - Signed integers of arbitrary precision
+- `Bool` - Boolean values (`True` or `False`)
+- `ByteArray` - Raw byte arrays (encoded as hex with `#` prefix)
+- `String` - UTF-8 text strings (with `@` prefix)
+- `Data` - Universal serialization type for blockchain data
+- `Void` - Empty type with no instances
+
+```aiken
+// Examples of primitive type initialization
+let my_int: Int = 42
+let my_bool: Bool = True
+let my_bytearray: ByteArray = #"666f6f" // hex encoding
+let my_string: String = @"Hello, Aiken!" // UTF-8 string
+```
+
+### Variable Declaration
+- Use `let` for variable bindings (immutable)
+- Use `const` for module-level constants
+- Variables can shadow previous bindings
+- Type annotations are optional but recommended
+
+```aiken
+// Constants (module level)
+const MAX_TOKENS: Int = 1000
+
+// Variable bindings (inside functions)
+fn example() {
+  let x = 1
+  let y: Int = x + 2 // Type annotation is optional
+  let x = x * 2 // Shadows previous binding
+}
+```
+
+### Custom Types
+- Use `type` to define custom types (record structures or enums)
+- Use `pub type` to make types public/exportable
+- Type constructors use `CamelCase`
+- Use generics with lowercase type variables (e.g., `a`, `b`)
+
+```aiken
+// Record type
+pub type Person {
+  name: String,
+  age: Int,
+}
+
+// Record with updating syntax
+fn birthday(person: Person) -> Person {
+  Person { ..person, age: person.age + 1 }
+}
+
+// Enum type
+pub type Action {
+  Create
+  Update
+  Delete { reason: String }
+}
+
+// Generic type
+pub type Result<success, error> {
+  Ok(success)
+  Error(error)
+}
+```
+
+### Pattern Matching
+- Use `when/is` for pattern matching expressions
+- Use `expect` for demanding a specific pattern
+
+```aiken
+// Pattern matching with when/is
+fn describe(action: Action) -> String {
+  when action is {
+    Create -> @"Created"
+    Update -> @"Updated"
+    Delete { reason } -> @"Deleted because: " + reason
+  }
+}
+
+// Using expect for pattern matching
+fn extract_value(maybe_value: Option<Int>) -> Int {
+  expect Some(value) = maybe_value
+  value
+}
+```
+
+### Functions and Expressions
+- Functions are defined with `fn` keyword
+- Anonymous functions use `fn(args) { body }` syntax
+- Return values are the last expression evaluated
+- Arrow function syntax uses `->` for return type
+- Use `|>` for function pipelining
+
+```aiken
+// Named function with type annotation
+fn add(x: Int, y: Int) -> Int {
+  x + y
+}
+
+// Anonymous function
+let multiply = fn(x, y) { x * y }
+
+// Function pipeline
+fn process(x: Int) -> Int {
+  x
+  |> add(1, _)
+  |> multiply(2, _)
+  |> add(3, _)
+}
+```
+
+### Control Flow
+- `if/else` expressions for conditional logic
+- `when/is` for pattern matching
+- `and {}` and `or {}` for compound logical conditions
+- `trace` for debugging values
+
+```aiken
+// If/else expression
+fn max(a: Int, b: Int) -> Int {
+  if a > b {
+    a
+  } else {
+    b
+  }
+}
+
+// Compound conditions
+fn validate(x: Int, y: Int) -> Bool {
+  and {
+    x > 0,
+    y > 0,
+    x != y,
+  }
+}
+```
+
+### Working with Collections
+- Lists are created with `[item1, item2, ...]` syntax
+- Tuples are created with `(item1, item2, ...)` syntax
+- Dictionaries use `dict.new()` and `dict.insert()`
+- Use standard library functions for collection operations
+
+```aiken
+// List operations
+let xs = [1, 2, 3, 4]
+let doubled = list.map(xs, fn(x) { x * 2 })
+let filtered = list.filter(xs, fn(x) { x > 2 })
+let sum = list.foldl(xs, 0, fn(x, acc) { x + acc })
+
+// Cons operator for lists
+let new_list = [1, ..existing_list]
+
+// Dictionary operations
+let balances = dict.new()
+let updated = dict.insert(balances, owner, 1000, int.compare)
+```
+
+### Error Handling
+- Use `Option<a>` for optional values
+- Use `Result<a, e>` for operations that might fail
+- Use `expect` to assert conditions with error messages
+- Use `todo` for unfinished implementations
+
+```aiken
+// Option handling
+fn safe_divide(a: Int, b: Int) -> Option<Int> {
+  if b == 0 {
+    None
+  } else {
+    Some(a / b)
+  }
+}
+
+// Result handling
+fn validate_amount(amount: Int) -> Result<Int, String> {
+  if amount <= 0 {
+    Error(@"Amount must be positive")
+  } else if amount > 1000 {
+    Error(@"Amount exceeds maximum")
+  } else {
+    Ok(amount)
+  }
+}
+
+// Using expect for validation
+fn withdraw(balance: Int, amount: Int) -> Int {
+  expect balance >= amount
+  balance - amount
+}
+
+// Using todo for placeholders
+fn not_implemented() {
+  todo @"This function is not yet implemented"
+}
+```
+
+## References
+- [Aiken Standard Library](mdc:https:/aiken-lang.github.io/stdlib)
+- [Aiken Language Tour](mdc:https:/aiken-lang.org/language-tour)
+- [Awesome Aiken](mdc:https:/github.com/aiken-lang/awesome-aiken)
+
